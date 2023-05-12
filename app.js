@@ -1,10 +1,11 @@
-/////////////////////////modules imported///////////////
+///////////////////////////////////////modules imported///////////////////////////////////////
 import express from "express";
 import bodyParser from "body-parser";
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import cors from "cors";
 dotenv.config();
 
 
@@ -12,7 +13,7 @@ mongoose.set('strictQuery', false);
 
 mongoose.connect("mongodb+srv://Yash_Kshatriya:Yash%402001@cluster0.vxibuhd.mongodb.net/restDB",{useNewUrlParser:true});
 
-////////////creating a schema for blog  (structure for our blog)/////////////////////////////////
+/////////////////////creating a schema for blog  (structure for our blog)/////////////////////////////////
 
 const blogSchema=new mongoose.Schema({
     title:{type: String,required:true},
@@ -20,7 +21,7 @@ const blogSchema=new mongoose.Schema({
     
 })
 
-////////////creating a schema for user (structure for our user)/////////////////////////////////
+////////////////////creating a schema for user (structure for our user)/////////////////////////////////
 
 const UserSchema=new mongoose.Schema({
     email:{
@@ -42,21 +43,9 @@ const app=express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended:true}));
 
-/////////////////////////////////*code to handle cors////////////////////////////////////
-app.use((req,res,next)=>{
-    res.header("Access-Control-Allow-Origin","*");
-    res.header(
-        "Access-Control-Allow-Headers","Origin,X-Requested-With,Content-Type,Accept,Authorization"
-    );
-    if(req.method==="OPTIONS"){
-        res.header("Access-Control-Allow-Methods","PUT,POST,PATCH,DELETE");
-        return res.status(200).json({});
-    }
-    next();
-
-})
-
-//////////////////////////////////creating authentication middleware///////////////////////
+///////////////////////////////////////*code to handle cors/////////////////////////////////////////////
+app.use(cors());
+///////////////////////////////////////creating authentication middleware///////////////////////////////
 
 function CheckAuth(req,res,next){
 
@@ -78,7 +67,8 @@ function CheckAuth(req,res,next){
             try{
                 const decoded=jwt.verify(token,process.env.JWT_KEY);
                 req.userData=decoded;
-                next()
+                console.log(req.userData);
+                next();
             }catch(err){
                 return res.status(401).json({
                     message:"Auth failed"
@@ -88,7 +78,7 @@ function CheckAuth(req,res,next){
 
 }
 
-///////////////////creating a signup route for signing up a users////////////////////////////////////////////////////////
+/////////////////////////creating a signup route for signing up a users////////////////////////////////////////////////////////
 
 app.post("/users/signup",(req,res)=>{
 
@@ -190,7 +180,7 @@ app.post("/users/login",(req,res)=>{
 
 app.get("/",(req,res)=>{
     // res.send("This is blog api");
-    return res.status(201).json({
+    return res.status(200).json({
         message:"Hello this is blog api"
     })
 })
@@ -209,7 +199,7 @@ app.post("/blogs",CheckAuth,(req,res)=>{
     })
 })
 
-////////////////////code to get all the blogs in database/////////////////////////////////////////
+////////////////////////code to get all the blogs in database/////////////////////////////////////////
 
 app.get("/blogs",(req,res)=>{
 
@@ -222,7 +212,7 @@ app.get("/blogs",(req,res)=>{
         }
         else{
             // res.send(blogs);
-            return res.status(201).json({
+            return res.status(200).json({
                 Blogs:blogs
             })
         }
@@ -240,7 +230,7 @@ app.get("/blogs/:id",CheckAuth,(req,res)=>{
         if(err){
             // res.send(err)
             return res.status(500).json({
-                error:err
+                error:err.message
             })
         }
         else if(!blog){
@@ -251,14 +241,14 @@ app.get("/blogs/:id",CheckAuth,(req,res)=>{
         }
         else{
             // res.send(blog);
-            return res.status(201).json({
+            return res.status(200).json({
                 Blog:blog
             })
         }
     })
 })
 
-////////////////code to delete specific blog from database/////////////////////////////
+//////////////////////////////code to delete specific blog from database/////////////////////////////
 app.delete("/blogs/:id",CheckAuth,(req,res)=>{
     const blogId=req.params.id;
     Blog.deleteOne({_id:blogId},(err,result)=>{
@@ -277,14 +267,14 @@ app.delete("/blogs/:id",CheckAuth,(req,res)=>{
         }
         else{
             // res.send("blog deleted successfully");
-            return res.status(201).json({
+            return res.status(204).json({
                 message:"blog deleted successfully"
             })
         }
     })
 })
 
-/////////////////////code to update a specific blog i an database///////////////////
+//////////////////////////////////code to update a specific blog i an database///////////////////
 app.patch("/blogs/:id",CheckAuth,(req,res)=>{
 
     const blogId=req.params.id;
@@ -315,7 +305,9 @@ app.patch("/blogs/:id",CheckAuth,(req,res)=>{
            
             blog.save((err) => {
                 if (err) {
-                  res.send(err);
+                  res.status(500).json({
+                    message:err.message
+                  });
                 } else {
                 //   res.send("blog updated successfully");
                 return res.status(201).json({
